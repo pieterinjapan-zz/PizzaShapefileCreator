@@ -108,6 +108,7 @@ void CalcEngine::runCalculation()
 	const double directionVecY = cosHalfTheta * m_params.radiusMin_m;
 
 	const int numSlice = floor(360.0 / m_params.segmentAngle_deg);
+	
 	for (int i = 0; i < numSlice; i++) {
 
 		// calculate starting point for i'th slice of circle
@@ -118,12 +119,23 @@ void CalcEngine::runCalculation()
 		const double startSliceY_i = m_params.originY_m - sinTheta_i * directionVecX + cosTheta_i * directionVecY;
 
 		// generate polygons for i'th slice of circle
-		generateSlice(startSliceX_i, startSliceY_i);
+		generateSlice(startSliceX_i, startSliceY_i, m_params.segmentAngle_deg);
+	}
+
+	// add final slice if neccesary  
+	const double angle_swept = numSlice * m_params.segmentAngle_deg;
+	if (angle_swept < 360.0) {
+		const double angle_last = 360.0 - angle_swept;
+		const double cosTheta_l = cos(M_PI * angle_swept / 180.0);
+		const double sinTheta_l = sin(M_PI * angle_swept / 180.0);
+		const double startSliceX_l = m_params.originX_m + cosTheta_l * directionVecX + sinTheta_l * directionVecY;
+		const double startSliceY_l = m_params.originY_m - sinTheta_l * directionVecX + cosTheta_l * directionVecY;
+		generateSlice(startSliceX_l, startSliceY_l, angle_last);
 	}
 }
 
-// generate polygons making up single slice of circle for
-void CalcEngine::generateSlice(const double startSliceX, const double startSliceY)
+// generate polygons making up single slice of circle 
+void CalcEngine::generateSlice(const double startSliceX, const double startSliceY, const double angle)
 {
 	// unit vector from origin to start point of slice
 	const double unitX = (startSliceX - m_params.originX_m) / m_params.radiusMin_m;
@@ -134,12 +146,12 @@ void CalcEngine::generateSlice(const double startSliceX, const double startSlice
 	for (int i = 0; i < numSegments; i++) {
 		const double startSegmentX_i = startSliceX + m_params.segmentLength_m * i * unitX;
 		const double startSegmentY_i = startSliceY + m_params.segmentLength_m * i * unitY;
-		generateSegment(startSegmentX_i, startSegmentY_i);
+		generateSegment(startSegmentX_i, startSegmentY_i, angle);
 	}
 }
 
 // generate polygon making up segment of slice
-void CalcEngine::generateSegment(const double startSegmentX, const double startSegmentY)
+void CalcEngine::generateSegment(const double startSegmentX, const double startSegmentY, const double angle)
 {
 	// define unit vector from origin to start point
 	const double distOriginToBottomLeft = sqrt(pow(startSegmentX - m_params.originX_m, 2.0) + pow(startSegmentY - m_params.originY_m, 2.0));
@@ -147,8 +159,8 @@ void CalcEngine::generateSegment(const double startSegmentX, const double startS
 	const double unitY = (startSegmentY - m_params.originY_m) / distOriginToBottomLeft;
 
 	// define unit vector rotated clockwise by the segment angle
-	const double cosTheta = cos(M_PI * m_params.segmentAngle_deg / 180.0);
-	const double sinTheta = sin(M_PI * m_params.segmentAngle_deg / 180.0);
+	const double cosTheta = cos(M_PI * angle / 180.0);
+	const double sinTheta = sin(M_PI * angle / 180.0);
 	const double unitXRotated = cosTheta * unitX + sinTheta * unitY;
 	const double unitYRotated = -sinTheta * unitX + cosTheta * unitY;
 
